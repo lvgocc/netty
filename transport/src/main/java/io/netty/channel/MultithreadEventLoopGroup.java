@@ -30,10 +30,23 @@ import java.util.concurrent.ThreadFactory;
  * Abstract base class for {@link EventLoopGroup} implementations that handles their tasks with multiple threads at
  * the same time.
  */
+
+/**
+ * lvgorice@gmail.com
+ * <p>
+ * 多路复用时间轮询组
+ */
 public abstract class MultithreadEventLoopGroup extends MultithreadEventExecutorGroup implements EventLoopGroup {
 
     private static final InternalLogger logger = InternalLoggerFactory.getInstance(MultithreadEventLoopGroup.class);
 
+    /**
+     * lvgorice@gmail.com
+     * <p>
+     * 事件循环线程数 默认大小.
+     * 取 io.netty.eventLoopThreads 配置大小. 通过虚拟机启动参数配置-Dio.netty.eventLoopThreads=100
+     * 否则取逻辑线程数 * 2;
+     */
     private static final int DEFAULT_EVENT_LOOP_THREADS;
 
     static {
@@ -64,7 +77,7 @@ public abstract class MultithreadEventLoopGroup extends MultithreadEventExecutor
      * EventExecutorChooserFactory, Object...)
      */
     protected MultithreadEventLoopGroup(int nThreads, Executor executor, EventExecutorChooserFactory chooserFactory,
-                                     Object... args) {
+                                        Object... args) {
         super(nThreads == 0 ? DEFAULT_EVENT_LOOP_THREADS : nThreads, executor, chooserFactory, args);
     }
 

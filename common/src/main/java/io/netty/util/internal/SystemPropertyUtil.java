@@ -24,9 +24,19 @@ import java.security.PrivilegedAction;
 /**
  * A collection of utility methods to retrieve and parse the values of the Java system properties.
  */
+
+/**
+ * lvgorice@gmail.com
+ * <p>
+ * 系统参数工具类
+ */
 public final class SystemPropertyUtil {
 
     private static final InternalLogger logger = InternalLoggerFactory.getInstance(SystemPropertyUtil.class);
+
+    private SystemPropertyUtil() {
+        // Unused
+    }
 
     /**
      * Returns {@code true} if and only if the system property with the specified {@code key}
@@ -52,8 +62,8 @@ public final class SystemPropertyUtil {
      * the property access fails.
      *
      * @return the property value.
-     *         {@code def} if there's no such property or if an access to the
-     *         specified property is not allowed.
+     * {@code def} if there's no such property or if an access to the
+     * specified property is not allowed.
      */
     public static String get(final String key, String def) {
         ObjectUtil.checkNotNull(key, "key");
@@ -90,8 +100,8 @@ public final class SystemPropertyUtil {
      * the property access fails.
      *
      * @return the property value.
-     *         {@code def} if there's no such property or if an access to the
-     *         specified property is not allowed.
+     * {@code def} if there's no such property or if an access to the
+     * specified property is not allowed.
      */
     public static boolean getBoolean(String key, boolean def) {
         String value = get(key);
@@ -126,8 +136,8 @@ public final class SystemPropertyUtil {
      * the property access fails.
      *
      * @return the property value.
-     *         {@code def} if there's no such property or if an access to the
-     *         specified property is not allowed.
+     * {@code def} if there's no such property or if an access to the
+     * specified property is not allowed.
      */
     public static int getInt(String key, int def) {
         String value = get(key);
@@ -156,8 +166,8 @@ public final class SystemPropertyUtil {
      * the property access fails.
      *
      * @return the property value.
-     *         {@code def} if there's no such property or if an access to the
-     *         specified property is not allowed.
+     * {@code def} if there's no such property or if an access to the
+     * specified property is not allowed.
      */
     public static long getLong(String key, long def) {
         String value = get(key);
@@ -178,9 +188,5 @@ public final class SystemPropertyUtil {
         );
 
         return def;
-    }
-
-    private SystemPropertyUtil() {
-        // Unused
     }
 }
