@@ -446,9 +446,9 @@ public final class NioEventLoop extends SingleThreadEventLoop {
                             nextWakeupNanos.set(curDeadlineNanos);
                             try {
                                 if (!hasTasks()) {
-                                    System.out.println("io/netty/channel/nio/NioEventLoop.java:447 死循环事件选择器阻塞中......");
+                                    System.out.println("死循环事件选择器阻塞轮询中...... io/netty/channel/nio/NioEventLoop.java:447 ");
                                     strategy = select(curDeadlineNanos);
-                                    System.out.println("死循环开启事件选择器. 监控事件发生 ----strategy : " + strategy);
+                                    System.out.println("发生事件 ----   strategy = " + strategy);
                                 }
                             } finally {
                                 // This update is just to help block unnecessary selector wakeups
