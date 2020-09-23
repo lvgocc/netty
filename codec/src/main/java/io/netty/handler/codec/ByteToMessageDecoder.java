@@ -349,6 +349,12 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
         }
     }
 
+    /**
+     * 客户端关闭, 通道不活跃了
+     *
+     * @param ctx
+     * @throws Exception
+     */
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         channelInputClosed(ctx, true);
@@ -385,6 +391,7 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
                     // Something was read, call fireChannelReadComplete()
                     ctx.fireChannelReadComplete();
                 }
+                // 客户端关闭通道
                 if (callChannelInactive) {
                     ctx.fireChannelInactive();
                 }

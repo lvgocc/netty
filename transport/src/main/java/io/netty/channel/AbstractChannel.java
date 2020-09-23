@@ -27,11 +27,7 @@ import io.netty.util.internal.logging.InternalLogger;
 import io.netty.util.internal.logging.InternalLoggerFactory;
 
 import java.io.IOException;
-import java.net.ConnectException;
-import java.net.InetSocketAddress;
-import java.net.NoRouteToHostException;
-import java.net.SocketAddress;
-import java.net.SocketException;
+import java.net.*;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.NotYetConnectedException;
 import java.util.concurrent.Executor;
@@ -599,12 +595,18 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
             closeIfClosed(); // doDisconnect() might have closed the channel
         }
 
+        /**
+         * 关闭连接 -1
+         *
+         * @param promise
+         */
         @Override
         public final void close(final ChannelPromise promise) {
             assertEventLoop();
 
             ClosedChannelException closedChannelException =
                     StacklessClosedChannelException.newInstance(AbstractChannel.class, "close(ChannelPromise)");
+            // 关闭连接
             close(promise, closedChannelException, closedChannelException, false);
         }
 
@@ -680,6 +682,13 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
             pipeline.fireUserEventTriggered(ChannelOutputShutdownEvent.INSTANCE);
         }
 
+        /**
+         * 关闭连接
+         * @param promise
+         * @param cause
+         * @param closeCause
+         * @param notify
+         */
         private void close(final ChannelPromise promise, final Throwable cause,
                            final ClosedChannelException closeCause, final boolean notify) {
             if (!promise.setUncancellable()) {
@@ -766,6 +775,10 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
             }
         }
 
+        /**
+         * 不活跃的通道, 或者是取消注册状态
+         * @param wasActive
+         */
         private void fireChannelInactiveAndDeregister(final boolean wasActive) {
             deregister(voidPromise(), wasActive && !isActive());
         }
@@ -788,6 +801,7 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
             deregister(promise, false);
         }
 
+        // 取消注册
         private void deregister(final ChannelPromise promise, final boolean fireChannelInactive) {
             if (!promise.setUncancellable()) {
                 return;
@@ -815,6 +829,7 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
                     } catch (Throwable t) {
                         logger.warn("Unexpected exception occurred while deregistering a channel.", t);
                     } finally {
+                        // 通道不活跃
                         if (fireChannelInactive) {
                             pipeline.fireChannelInactive();
                         }
@@ -822,6 +837,7 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
                         // an open channel.  Their doDeregister() calls close(). Consequently,
                         // close() calls deregister() again - no need to fire channelUnregistered, so check
                         // if it was registered.
+                        // 仍然活跃而且注册状态, 改为非注册状态, 同时取消注册
                         if (registered) {
                             registered = false;
                             pipeline.fireChannelUnregistered();

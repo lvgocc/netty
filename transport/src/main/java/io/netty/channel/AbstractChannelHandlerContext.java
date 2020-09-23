@@ -23,41 +23,20 @@ import io.netty.util.ResourceLeakHint;
 import io.netty.util.concurrent.AbstractEventExecutor;
 import io.netty.util.concurrent.EventExecutor;
 import io.netty.util.concurrent.OrderedEventExecutor;
-import io.netty.util.internal.ObjectPool;
+import io.netty.util.internal.*;
 import io.netty.util.internal.ObjectPool.Handle;
 import io.netty.util.internal.ObjectPool.ObjectCreator;
-import io.netty.util.internal.PromiseNotificationUtil;
-import io.netty.util.internal.ThrowableUtil;
-import io.netty.util.internal.ObjectUtil;
-import io.netty.util.internal.StringUtil;
-import io.netty.util.internal.SystemPropertyUtil;
 import io.netty.util.internal.logging.InternalLogger;
 import io.netty.util.internal.logging.InternalLoggerFactory;
 
 import java.net.SocketAddress;
 import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
 
-import static io.netty.channel.ChannelHandlerMask.MASK_BIND;
-import static io.netty.channel.ChannelHandlerMask.MASK_CHANNEL_ACTIVE;
-import static io.netty.channel.ChannelHandlerMask.MASK_CHANNEL_INACTIVE;
-import static io.netty.channel.ChannelHandlerMask.MASK_CHANNEL_READ;
-import static io.netty.channel.ChannelHandlerMask.MASK_CHANNEL_READ_COMPLETE;
-import static io.netty.channel.ChannelHandlerMask.MASK_CHANNEL_REGISTERED;
-import static io.netty.channel.ChannelHandlerMask.MASK_CHANNEL_UNREGISTERED;
-import static io.netty.channel.ChannelHandlerMask.MASK_CHANNEL_WRITABILITY_CHANGED;
-import static io.netty.channel.ChannelHandlerMask.MASK_CLOSE;
-import static io.netty.channel.ChannelHandlerMask.MASK_CONNECT;
-import static io.netty.channel.ChannelHandlerMask.MASK_DEREGISTER;
-import static io.netty.channel.ChannelHandlerMask.MASK_DISCONNECT;
-import static io.netty.channel.ChannelHandlerMask.MASK_EXCEPTION_CAUGHT;
-import static io.netty.channel.ChannelHandlerMask.MASK_FLUSH;
-import static io.netty.channel.ChannelHandlerMask.MASK_ONLY_INBOUND;
-import static io.netty.channel.ChannelHandlerMask.MASK_ONLY_OUTBOUND;
-import static io.netty.channel.ChannelHandlerMask.MASK_READ;
-import static io.netty.channel.ChannelHandlerMask.MASK_USER_EVENT_TRIGGERED;
-import static io.netty.channel.ChannelHandlerMask.MASK_WRITE;
-import static io.netty.channel.ChannelHandlerMask.mask;
+import static io.netty.channel.ChannelHandlerMask.*;
 
+/**
+ * 通道处理器上下文
+ */
 abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, ResourceLeakHint {
 
     private static final InternalLogger logger = InternalLoggerFactory.getInstance(AbstractChannelHandlerContext.class);
@@ -236,6 +215,11 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
         }
     }
 
+    /**
+     * 通讯通道不活跃
+     *
+     * @return
+     */
     @Override
     public ChannelHandlerContext fireChannelInactive() {
         invokeChannelInactive(findContextInbound(MASK_CHANNEL_INACTIVE));
@@ -259,6 +243,7 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
     private void invokeChannelInactive() {
         if (invokeHandler()) {
             try {
+                // 断开连接时, 通道即不活跃, 调用 ChannelInboundHandler inactive 方法
                 ((ChannelInboundHandler) handler()).channelInactive(this);
             } catch (Throwable t) {
                 invokeExceptionCaught(t);
@@ -303,15 +288,15 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
             } catch (Throwable error) {
                 if (logger.isDebugEnabled()) {
                     logger.debug(
-                        "An exception {}" +
-                        "was thrown by a user handler's exceptionCaught() " +
-                        "method while handling the following exception:",
-                        ThrowableUtil.stackTraceToString(error), cause);
+                            "An exception {}" +
+                                    "was thrown by a user handler's exceptionCaught() " +
+                                    "method while handling the following exception:",
+                            ThrowableUtil.stackTraceToString(error), cause);
                 } else if (logger.isWarnEnabled()) {
                     logger.warn(
-                        "An exception '{}' [enable DEBUG level for full stacktrace] " +
-                        "was thrown by a user handler's exceptionCaught() " +
-                        "method while handling the following exception:", error, cause);
+                            "An exception '{}' [enable DEBUG level for full stacktrace] " +
+                                    "was thrown by a user handler's exceptionCaught() " +
+                                    "method while handling the following exception:", error, cause);
                 }
             }
         } else {
@@ -981,7 +966,7 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
     }
 
     private static boolean safeExecute(EventExecutor executor, Runnable runnable,
-            ChannelPromise promise, Object msg, boolean lazy) {
+                                       ChannelPromise promise, Object msg, boolean lazy) {
         try {
             if (lazy && executor instanceof AbstractEventExecutor) {
                 ((AbstractEventExecutor) executor).lazyExecute(runnable);
@@ -1020,7 +1005,7 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
         });
 
         static WriteTask newInstance(AbstractChannelHandlerContext ctx,
-                Object msg, ChannelPromise promise, boolean flush) {
+                                     Object msg, ChannelPromise promise, boolean flush) {
             WriteTask task = RECYCLER.get();
             init(task, ctx, msg, promise, flush);
             return task;

@@ -420,6 +420,9 @@ public final class NioEventLoop extends SingleThreadEventLoop {
         }
     }
 
+    /**
+     * 死循环开启事件选择器. 监控事件发生
+     */
     @Override
     protected void run() {
         int selectCnt = 0;
@@ -429,29 +432,31 @@ public final class NioEventLoop extends SingleThreadEventLoop {
                 try {
                     strategy = selectStrategy.calculateStrategy(selectNowSupplier, hasTasks());
                     switch (strategy) {
-                    case SelectStrategy.CONTINUE:
-                        continue;
+                        case SelectStrategy.CONTINUE:
+                            continue;
 
-                    case SelectStrategy.BUSY_WAIT:
-                        // fall-through to SELECT since the busy-wait is not supported with NIO
+                        case SelectStrategy.BUSY_WAIT:
+                            // fall-through to SELECT since the busy-wait is not supported with NIO
 
-                    case SelectStrategy.SELECT:
-                        long curDeadlineNanos = nextScheduledTaskDeadlineNanos();
-                        if (curDeadlineNanos == -1L) {
-                            curDeadlineNanos = NONE; // nothing on the calendar
-                        }
-                        nextWakeupNanos.set(curDeadlineNanos);
-                        try {
-                            if (!hasTasks()) {
-                                strategy = select(curDeadlineNanos);
+                        case SelectStrategy.SELECT:
+                            long curDeadlineNanos = nextScheduledTaskDeadlineNanos();
+                            if (curDeadlineNanos == -1L) {
+                                curDeadlineNanos = NONE; // nothing on the calendar
                             }
-                        } finally {
-                            // This update is just to help block unnecessary selector wakeups
-                            // so use of lazySet is ok (no race condition)
-                            nextWakeupNanos.lazySet(AWAKE);
-                        }
-                        // fall through
-                    default:
+                            nextWakeupNanos.set(curDeadlineNanos);
+                            try {
+                                if (!hasTasks()) {
+                                    System.out.println("io/netty/channel/nio/NioEventLoop.java:447 死循环事件选择器阻塞中......");
+                                    strategy = select(curDeadlineNanos);
+                                    System.out.println("死循环开启事件选择器. 监控事件发生 ----strategy : " + strategy);
+                                }
+                            } finally {
+                                // This update is just to help block unnecessary selector wakeups
+                                // so use of lazySet is ok (no race condition)
+                                nextWakeupNanos.lazySet(AWAKE);
+                            }
+                            // fall through
+                        default:
                     }
                 } catch (IOException e) {
                     // If we receive an IOException here its because the Selector is messed up. Let's rebuild
@@ -467,9 +472,11 @@ public final class NioEventLoop extends SingleThreadEventLoop {
                 needsToSelectAgain = false;
                 final int ioRatio = this.ioRatio;
                 boolean ranTasks;
+                // 根据 IO 利用率和 strategy 来进行事件处理
                 if (ioRatio == 100) {
                     try {
                         if (strategy > 0) {
+                            // 事件处理
                             processSelectedKeys();
                         }
                     } finally {
@@ -498,6 +505,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
                 } else if (unexpectedSelectorWakeup(selectCnt)) { // Unexpected wakeup (unusual case)
                     selectCnt = 0;
                 }
+
             } catch (CancelledKeyException e) {
                 // Harmless exception - log anyway
                 if (logger.isDebugEnabled()) {
@@ -507,6 +515,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
             } catch (Throwable t) {
                 handleLoopException(t);
             }
+
             // Always handle shutdown even if the loop processing threw an exception.
             try {
                 if (isShuttingDown()) {
@@ -801,6 +810,13 @@ public final class NioEventLoop extends SingleThreadEventLoop {
         return selector.selectNow();
     }
 
+    /**
+     * 死循环阻塞事件查询方法
+     *
+     * @param deadlineNanos
+     * @return
+     * @throws IOException
+     */
     private int select(long deadlineNanos) throws IOException {
         if (deadlineNanos == NONE) {
             return selector.select();
