@@ -446,9 +446,9 @@ public final class NioEventLoop extends SingleThreadEventLoop {
                             nextWakeupNanos.set(curDeadlineNanos);
                             try {
                                 if (!hasTasks()) {
-                                    System.out.println("死循环事件选择器阻塞轮询中...... io/netty/channel/nio/NioEventLoop.java:447 ");
+//                                    System.out.println("死循环事件选择器阻塞轮询中...... io/netty/channel/nio/NioEventLoop.java:447 ");
                                     strategy = select(curDeadlineNanos);
-                                    System.out.println("发生事件 ----   strategy = " + strategy);
+//                                    System.out.println("发生事件 ----   strategy = " + strategy);
                                 }
                             } finally {
                                 // This update is just to help block unnecessary selector wakeups
@@ -670,7 +670,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
      * @param ch
      */
     private void processSelectedKey(SelectionKey k, AbstractNioChannel ch) {
-        System.out.println("选择器事件处理过程");
+//        System.out.println("选择器事件处理过程");
         final AbstractNioChannel.NioUnsafe unsafe = ch.unsafe();
         if (!k.isValid()) {
             final EventLoop eventLoop;
@@ -695,7 +695,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
 
         try {
             int readyOps = k.readyOps();
-            System.out.println("io/netty/channel/nio/NioEventLoop.java:698 事件行动值 : " + readyOps);
+//            System.out.println("io/netty/channel/nio/NioEventLoop.java:698 事件行动值 : " + readyOps);
             // We first need to call finishConnect() before try to trigger a read(...) or write(...) as otherwise
             // the NIO JDK channel implementation may throw a NotYetConnectedException.
             if ((readyOps & SelectionKey.OP_CONNECT) != 0) {

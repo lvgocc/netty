@@ -40,6 +40,18 @@ import java.util.Set;
  *
  * @param <V> the type of the thread-local variable
  * @see ThreadLocal
+ *
+ * {@link ThreadLocal}的一个特殊变体，当从{@link FastThreadLocalThread}在内部，
+ * {@link FastThreadLocal}使用数组中的常量索引，而不是使用哈希代码和哈希表，
+ * 寻找变量。虽然看起来非常微妙，但与使用散列相比，它的性能稍有优势表，并且在频繁访问时非常有用。
+ * 要利用这个线程局部变量，线程必须是{@link FastThreadLocalThread}或其子类型。
+ * 默认情况下，{@link DefaultThreadFactory}创建的所有线程都是{@link FastThreadLocalThread}，
+ * 这是由于这个原因注意，快速路径只能在扩展{@link FastThreadLocalThread}的线程上使用，因为它需要
+ *
+ * 存储必要状态的特殊字段。任何其他类型线程的访问都返回到常规线程
+ *
+ * *{@link ThreadLocal}。
+ * @param <V>
  */
 public class FastThreadLocal<V> {
 
