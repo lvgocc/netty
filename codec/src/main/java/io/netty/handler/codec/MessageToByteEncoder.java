@@ -17,11 +17,7 @@ package io.netty.handler.codec;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelOutboundHandler;
-import io.netty.channel.ChannelOutboundHandlerAdapter;
-import io.netty.channel.ChannelPipeline;
-import io.netty.channel.ChannelPromise;
+import io.netty.channel.*;
 import io.netty.util.ReferenceCountUtil;
 import io.netty.util.internal.TypeParameterMatcher;
 
@@ -42,6 +38,12 @@ import io.netty.util.internal.TypeParameterMatcher;
  *         }
  *     }
  * </pre>
+ */
+
+/**
+ * 编码器
+ *
+ * @param <I>
  */
 public abstract class MessageToByteEncoder<I> extends ChannelOutboundHandlerAdapter {
 
@@ -135,7 +137,7 @@ public abstract class MessageToByteEncoder<I> extends ChannelOutboundHandlerAdap
      * Sub-classes may override this method to return {@link ByteBuf} with a perfect matching {@code initialCapacity}.
      */
     protected ByteBuf allocateBuffer(ChannelHandlerContext ctx, @SuppressWarnings("unused") I msg,
-                               boolean preferDirect) throws Exception {
+                                     boolean preferDirect) throws Exception {
         if (preferDirect) {
             return ctx.alloc().ioBuffer();
         } else {

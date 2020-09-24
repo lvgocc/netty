@@ -34,7 +34,7 @@ import static java.lang.Integer.MAX_VALUE;
 /**
  * {@link ChannelInboundHandlerAdapter} which decodes bytes in a stream-like fashion from one {@link ByteBuf} to an
  * other Message type.
- *
+ * <p>
  * For example here is an implementation which reads all readable bytes from
  * the input {@link ByteBuf} and create a new {@link ByteBuf}.
  *
@@ -71,6 +71,10 @@ import static java.lang.Integer.MAX_VALUE;
  * Some methods such as {@link ByteBuf#readBytes(int)} will cause a memory leak if the returned buffer
  * is not released or added to the <tt>out</tt> {@link List}. Use derived buffers like {@link ByteBuf#readSlice(int)}
  * to avoid leaking memory.
+ */
+
+/**
+ * 将字节转成字符, 解码器
  */
 public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter {
 
@@ -179,6 +183,57 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
     }
 
     /**
+     * Get {@code numElements} out of the {@link List} and forward these through the pipeline.
+     */
+    static void fireChannelRead(ChannelHandlerContext ctx, List<Object> msgs, int numElements) {
+        if (msgs instanceof CodecOutputList) {
+            fireChannelRead(ctx, (CodecOutputList) msgs, numElements);
+        } else {
+            for (int i = 0; i < numElements; i++) {
+                ctx.fireChannelRead(msgs.get(i));
+            }
+        }
+    }
+
+    /**
+     * Get {@code numElements} out of the {@link CodecOutputList} and forward these through the pipeline.
+     */
+    static void fireChannelRead(ChannelHandlerContext ctx, CodecOutputList msgs, int numElements) {
+        for (int i = 0; i < numElements; i++) {
+            ctx.fireChannelRead(msgs.getUnsafe(i));
+        }
+    }
+
+    static ByteBuf expandCumulation(ByteBufAllocator alloc, ByteBuf oldCumulation, ByteBuf in) {
+        int oldBytes = oldCumulation.readableBytes();
+        int newBytes = in.readableBytes();
+        int totalBytes = oldBytes + newBytes;
+        ByteBuf newCumulation = alloc.buffer(alloc.calculateNewCapacity(totalBytes, MAX_VALUE));
+        ByteBuf toRelease = newCumulation;
+        try {
+            // This avoids redundant checks and stack depth compared to calling writeBytes(...)
+            newCumulation.setBytes(0, oldCumulation, oldCumulation.readerIndex(), oldBytes)
+                    .setBytes(oldBytes, in, in.readerIndex(), newBytes)
+                    .writerIndex(totalBytes);
+            in.readerIndex(in.writerIndex());
+            toRelease = oldCumulation;
+            return newCumulation;
+        } finally {
+            toRelease.release();
+        }
+    }
+
+    /**
+     * If {@code true} then only one message is decoded on each
+     * {@link #channelRead(ChannelHandlerContext, Object)} call.
+     * <p>
+     * Default is {@code false} as this has performance impacts.
+     */
+    public boolean isSingleDecode() {
+        return singleDecode;
+    }
+
+    /**
      * If set then only one message is decoded on each {@link #channelRead(ChannelHandlerContext, Object)}
      * call. This may be useful if you need to do some protocol upgrade and want to make sure nothing is mixed up.
      *
@@ -186,16 +241,6 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
      */
     public void setSingleDecode(boolean singleDecode) {
         this.singleDecode = singleDecode;
-    }
-
-    /**
-     * If {@code true} then only one message is decoded on each
-     * {@link #channelRead(ChannelHandlerContext, Object)} call.
-     *
-     * Default is {@code false} as this has performance impacts.
-     */
-    public boolean isSingleDecode() {
-        return singleDecode;
     }
 
     /**
@@ -263,7 +308,8 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
      * Gets called after the {@link ByteToMessageDecoder} was removed from the actual context and it doesn't handle
      * events anymore.
      */
-    protected void handlerRemoved0(ChannelHandlerContext ctx) throws Exception { }
+    protected void handlerRemoved0(ChannelHandlerContext ctx) throws Exception {
+    }
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
@@ -300,28 +346,6 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
             }
         } else {
             ctx.fireChannelRead(msg);
-        }
-    }
-
-    /**
-     * Get {@code numElements} out of the {@link List} and forward these through the pipeline.
-     */
-    static void fireChannelRead(ChannelHandlerContext ctx, List<Object> msgs, int numElements) {
-        if (msgs instanceof CodecOutputList) {
-            fireChannelRead(ctx, (CodecOutputList) msgs, numElements);
-        } else {
-            for (int i = 0; i < numElements; i++) {
-                ctx.fireChannelRead(msgs.get(i));
-            }
-        }
-    }
-
-    /**
-     * Get {@code numElements} out of the {@link CodecOutputList} and forward these through the pipeline.
-     */
-    static void fireChannelRead(ChannelHandlerContext ctx, CodecOutputList msgs, int numElements) {
-        for (int i = 0; i < numElements; i ++) {
-            ctx.fireChannelRead(msgs.getUnsafe(i));
         }
     }
 
@@ -529,25 +553,6 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
             // Only call decode() if there is something left in the buffer to decode.
             // See https://github.com/netty/netty/issues/4386
             decodeRemovalReentryProtection(ctx, in, out);
-        }
-    }
-
-    static ByteBuf expandCumulation(ByteBufAllocator alloc, ByteBuf oldCumulation, ByteBuf in) {
-        int oldBytes = oldCumulation.readableBytes();
-        int newBytes = in.readableBytes();
-        int totalBytes = oldBytes + newBytes;
-        ByteBuf newCumulation = alloc.buffer(alloc.calculateNewCapacity(totalBytes, MAX_VALUE));
-        ByteBuf toRelease = newCumulation;
-        try {
-            // This avoids redundant checks and stack depth compared to calling writeBytes(...)
-            newCumulation.setBytes(0, oldCumulation, oldCumulation.readerIndex(), oldBytes)
-                .setBytes(oldBytes, in, in.readerIndex(), newBytes)
-                .writerIndex(totalBytes);
-            in.readerIndex(in.writerIndex());
-            toRelease = oldCumulation;
-            return newCumulation;
-        } finally {
-            toRelease.release();
         }
     }
 
