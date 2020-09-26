@@ -226,6 +226,10 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
         return this;
     }
 
+    /**
+     * 通道不活跃时调用
+     * @param next
+     */
     static void invokeChannelInactive(final AbstractChannelHandlerContext next) {
         EventExecutor executor = next.executor();
         if (executor.inEventLoop()) {
